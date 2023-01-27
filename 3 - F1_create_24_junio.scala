@@ -1,4 +1,9 @@
 // Databricks notebook source
+// MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+
+// COMMAND ----------
+
 import org.apache.spark.sql.types.{StringType, DecimalType, StructField, StructType, DateType}
 import spark.implicits._
 import org.apache.spark.sql.Row
@@ -77,7 +82,8 @@ display(F1_df)
 //Seleccion campos para tabla f1 e insertar en tabla
 val columnsF1 = spark.catalog.listColumns("default", "f1").select("name").as[String].collect()
 val F1_definitivo = F1_df.select(columnsF1.map(col):_*)
-F1_definitivo.write.format("delta").mode("overwrite").saveAsTable("F1")
+//F1_defintiivo se guarda como F1
+F1_definitivo.write.format("delta").mode("overwrite").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("F1")
 //F1_definitivo.repartition(1).write.option("header","true").format("csv").mode("overwrite").save("/FileStore/tables/F1/F1")
 
 // COMMAND ----------

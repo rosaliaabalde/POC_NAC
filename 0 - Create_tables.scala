@@ -1,5 +1,10 @@
 // Databricks notebook source
 // MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+
+// COMMAND ----------
+
+// MAGIC %sql
 // MAGIC DROP TABLE IF EXISTS F0;
 // MAGIC CREATE TABLE IF NOT EXISTS F0 (
 // MAGIC COD_SOCIEDAD STRING,

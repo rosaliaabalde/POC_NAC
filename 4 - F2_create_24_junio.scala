@@ -1,4 +1,9 @@
 // Databricks notebook source
+// MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+
+// COMMAND ----------
+
 import org.apache.spark.sql.types.{StringType, IntegerType, DecimalType, StructField, StructType, DateType}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.functions._

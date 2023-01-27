@@ -1,11 +1,11 @@
 // Databricks notebook source
-// MAGIC %md
-// MAGIC ### Tabla Auxiliar para F1
+// MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
 
 // COMMAND ----------
 
-// MAGIC %sql
-// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+// MAGIC %md
+// MAGIC ### Tabla Auxiliar para F1
 
 // COMMAND ----------
 
@@ -20,7 +20,7 @@ spark.sql("DROP TABLE IF EXISTS TR_RAMO_POL")
 
 val TR_RAMO_POL_raw = spark.read.option("header", "true").option("delimiter", ",").csv("/FileStore/tables/F1/TR_RAMO_POL.csv").select("RAMO_POL", "MODALIDAD_POL","Negocio", "Tipo de Negocio").distinct()
 val TR_RAMO_POL = TR_RAMO_POL_raw.withColumnRenamed("Tipo de negocio", "Tipo_de_negocio").na.fill("")
-TR_RAMO_POL.write.format("delta").saveAsTable("TR_RAMO_POL")
+TR_RAMO_POL.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("TR_RAMO_POL")
 
 // COMMAND ----------
 
@@ -42,13 +42,13 @@ spark.sql("DROP TABLE IF EXISTS relacion_eventos")
 
 //se cargan las tablas
 val maestro_eventos_contables = spark.read.option("header", true).option("delimiter", ",").csv("/FileStore/tables/F2_parametricas/maestro_eventos_contables.csv")
-maestro_eventos_contables.write.format("delta").saveAsTable("maestro_eventos_contables")
+maestro_eventos_contables.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("maestro_eventos_contables")
 
 val maestro_eventos_negocio = spark.read.option("header", "true").option("delimiter", ",").csv("/FileStore/tables/F2_parametricas/maestro_eventos_negocio.csv")
-maestro_eventos_negocio.write.format("delta").saveAsTable("maestro_eventos_negocio")
+maestro_eventos_negocio.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("maestro_eventos_negocio")
 
 val relacion_eventos = spark.read.option("header", "true").option("delimiter", ",").csv("/FileStore/tables/F2_parametricas/relacion_eventos.csv")
-relacion_eventos.write.format("delta").saveAsTable("relacion_eventos")
+relacion_eventos.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("relacion_eventos")
 
 // COMMAND ----------
 
@@ -110,16 +110,16 @@ val schemaMaestroContables = StructType(
 // He vuelto a cargar el archivo asientos_cuentas_contables con el nombre corregido, ..que antes ponia asiento_cuentas_contablas
 
 val asientos_cuentas_contables = spark.read.option("header", true).option("delimiter", ",").schema(schemaAsientosContables).csv("/FileStore/tables/F2_parametricas/asientos_cuentas_contables.csv")
-asientos_cuentas_contables.write.format("delta").saveAsTable("asientos_cuentas_contables")
+asientos_cuentas_contables.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("asientos_cuentas_contables")
 
 val asientos_estructura_basica = spark.read.option("header", "true").option("delimiter", ";").csv("/FileStore/tables/F2_parametricas/asientos_estructura_basica.csv")
-asientos_estructura_basica.write.format("delta").saveAsTable("asientos_estructura_basica")
+asientos_estructura_basica.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("asientos_estructura_basica")
 
 val asientos_importes = spark.read.option("header", "true").option("delimiter", ";").csv("/FileStore/tables/F2_parametricas/asientos_importes.csv")
-asientos_importes.write.format("delta").saveAsTable("asientos_importes")
+asientos_importes.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("asientos_importes")
 
 val maestro_cuentas_contables = spark.read.option("header", true).option("delimiter", ",").schema(schemaMaestroContables).option("encoding", "ISO-8859-1").csv("/FileStore/tables/F2_parametricas/maestro_cuentas_contables.csv")
-maestro_cuentas_contables.write.format("delta").saveAsTable("maestro_cuentas_contables")
+maestro_cuentas_contables.write.format("delta").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("maestro_cuentas_contables")
 
 // COMMAND ----------
 

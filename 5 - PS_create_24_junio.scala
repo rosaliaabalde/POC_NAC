@@ -1,4 +1,9 @@
 // Databricks notebook source
+// MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+
+// COMMAND ----------
+
 import org.apache.spark.sql.functions._
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -67,7 +72,7 @@ col("TR_COD_MOD_CONT").alias("MODALIDAD_CON"))
 
 // COMMAND ----------
 
-PS_df_ren.write.format("delta").mode("overwrite").saveAsTable("ps")
+PS_df_ren.write.format("delta").mode("overwrite").option("readChangeFeed", "true").option("startingVersion", 0).saveAsTable("ps")
 
 // COMMAND ----------
 

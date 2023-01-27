@@ -4,6 +4,11 @@ import org.apache.spark.sql.Row;
 
 // COMMAND ----------
 
+// MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+
+// COMMAND ----------
+
 // MAGIC %md
 // MAGIC ### Cargar los datos con su estructura original
 
@@ -44,9 +49,19 @@ val f00_schema = StructType(
 
 // COMMAND ----------
 
+//READING CHANGES IN BATCH QUERIES
+// Cargar la tabla con una muestra con 166 de uno de los archivos input
+//val file_location = "/FileStore/tables/2021_04_recibos_sg"
+//val file_location = "/FileStore/tables/F0_input/"
+//val f0_df = spark.read.option("header", "true").options(Map("delimiter"->"|")).option("startingVersion", 0).option("endingVersion", 10).schema(f00_schema).csv(file_location)
+
+// COMMAND ----------
+
+//READING CHANGES IN STREAMING QUERIES
 // Cargar la tabla con una muestra con 166 de uno de los archivos input
 val file_location = "/FileStore/tables/sample"
 //val file_location = "/FileStore/tables/F0_input/"
+// not providing a starting version/timestamp will result in the latest snapshot being fetched first
 val f0_df = spark.read.option("header", "true").options(Map("delimiter"->"|")).schema(f00_schema).csv(file_location)
 
 // COMMAND ----------
