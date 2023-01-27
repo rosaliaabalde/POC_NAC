@@ -9,6 +9,7 @@ import org.apache.spark.sql.Row;
 
 // COMMAND ----------
 
+//Crea la estructura de f00
 val f00_schema = StructType(
   Array(
     StructField("POLIZA", StringType, true),
@@ -44,9 +45,13 @@ val f00_schema = StructType(
 // COMMAND ----------
 
 // Cargar la tabla con una muestra con 166 de uno de los archivos input
-//val file_location = "/FileStore/tables/sample.csv"
-val file_location = "/FileStore/tables/F0_input/"
-val f0_df = spark.read.option("header", "true").option("delimiter", "|").schema(f00_schema).csv(file_location)
+val file_location = "/FileStore/tables/sample"
+//val file_location = "/FileStore/tables/F0_input/"
+val f0_df = spark.read.option("header", "true").options(Map("delimiter"->"|")).schema(f00_schema).csv(file_location)
+
+// COMMAND ----------
+
+display(f0_df)
 
 // COMMAND ----------
 
@@ -69,6 +74,7 @@ import org.apache.spark.sql.types.Decimal
 // COMMAND ----------
 
 val f0_df2 = f0_df.select(
+  //Cambios de nombres 
   col("POLIZA").alias("COD_POLIZA"),
   col("RAMO").alias("COD_RAMO"),
   col("MODALIDAD").alias("COD_MODALIDAD"),
@@ -81,7 +87,7 @@ val f0_df2 = f0_df.select(
   col("`C.LIQUIDACION`").alias("CON_LIQUIDACION"),
   col("`RAMO CONT.`").alias("TR_COD_RAMO_CONT"),
   col("`MODALI. CONT.`").alias("TR_COD_MOD_CONT"),
-  // COD_TIP_GESTION
+  // COD_TIP_GESTION cmabia los códgios siguiendo las condiciones 
   when(col("`T.MEDIADOR`").isin("C", "E", "X"), lit("D"))
   .otherwise(lit("C")).alias("COD_TIP_GESTION"),
   regexp_replace(col("`IMP.PRIMA`"), ",", ".").cast(DecimalType(13,2)).alias("IMP_PRIM_TARIFA"),//*
@@ -137,11 +143,20 @@ when(col("`F.LIQ.CAR.`") <= col("`F.LIQ.COB.`") && col("`F.LIQ.ANU.`") <= col("`
 
 // COMMAND ----------
 
+display(f0_df2)
+
+// COMMAND ----------
+
+//más cambio de nombres
 val f0_df3 = f0_df2.withColumn("FEC_LIQ", when(col("COD_EST_REC") === "CB", col("`F.LIQ.COB.`"))
                                           .when(col("COD_EST_REC") === "DV", col("`F.LIQ.ANU.`"))
                                           .when(col("COD_EST_REC") === "PT", col("`F.LIQ.CAR.`"))
                                           .otherwise(lit("")))
 .drop("F.LIQ.COB.", "F.LIQ.ANU.", "F.LIQ.CAR.") //DROP AUXILIAR COLUMNS
+
+// COMMAND ----------
+
+display(f0_df3)
 
 // COMMAND ----------
 
@@ -158,17 +173,14 @@ val columns = spark.catalog.listColumns("default", "F0").select("name").as[Strin
 
 // COMMAND ----------
 
+
 spark.sql(s"INSERT OVERWRITE TABLE F0 SELECT ${columns.mkString(",")} FROM f0Temp");
 
 // COMMAND ----------
 
-//spark.table("F0").write.format("csv").mode("overwrite").save("/FileStore/tables/F0.csv")
+spark.table("F0").write.format("csv").mode("overwrite").save("/FileStore/tables/F0.csv")
 
 // COMMAND ----------
 
 // MAGIC %sql
-// MAGIC --SELECT count(*) FROM F0
-
-// COMMAND ----------
-
-
+// MAGIC SELECT count(*) FROM F0

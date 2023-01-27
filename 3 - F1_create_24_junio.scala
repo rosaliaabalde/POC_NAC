@@ -22,14 +22,18 @@ val F0_df = spark.table("default.F0")
 
 // COMMAND ----------
 
-// Transformación TR_COD_TIP_RECIB
+// Transformación nombres TR_COD_TIP_RECIB
 val F0_1_df = F0_df.withColumn("TR_COD_TIP_RECIB",
                                when(col("COD_TIP_RECIB") === "RPA", lit("RPRI"))
                                .otherwise(col("COD_TIP_RECIB")))
 
 // COMMAND ----------
 
-// Transformación TR_COD_EST_RECIB
+display(F0_1_df)
+
+// COMMAND ----------
+
+// Transformación nombres TR_COD_EST_RECIB
 val F0_2_df = F0_1_df.withColumn("TR_COD_EST_RECIB", 
                                   when(col("COD_EST_REC") === "CB", lit("COB"))
                                   .when(col("COD_EST_REC") === "DV", lit("DEV"))
@@ -38,7 +42,11 @@ val F0_2_df = F0_1_df.withColumn("TR_COD_EST_RECIB",
 
 // COMMAND ----------
 
-//Tranformación TR_COD_AGENCIA
+display(F0_2_df)
+
+// COMMAND ----------
+
+//Tranformación nombres TR_COD_AGENCIA
 
 val F0_3_df  = F0_2_df.withColumn("TR_COD_AGENCIA", 
                                   when(col("COD_AGENCIA") === "C", lit("CORR"))
@@ -51,10 +59,18 @@ val F0_3_df  = F0_2_df.withColumn("TR_COD_AGENCIA",
 
 // COMMAND ----------
 
+display(F0_3_df)
+
+// COMMAND ----------
+
 // Creación de una tabla F1 con la adición de las columnas TR_NEGOCIO y TR_TIP_NEGOCIO a partir de un join
 val F1_df = F0_3_df.join(TR_RAMO_POL_df, F0_3_df("COD_RAMO").cast("Integer") === TR_RAMO_POL_df("RAMO_POL").cast("Integer") && F0_3_df("COD_MODALIDAD").cast("Integer") === TR_RAMO_POL_df("MODALIDAD_POL").cast("Integer"), "left").select(F0_3_df("*"), TR_RAMO_POL_df("Negocio").alias("TR_NEGOCIO"), TR_RAMO_POL_df("Tipo_de_Negocio").alias("TR_COD_TIP_NEGOCIO"))
   //Se añade ID incremental
   .withColumn("TR_ID_EVNEG", monotonically_increasing_id().cast(StringType))
+
+// COMMAND ----------
+
+display(F1_df)
 
 // COMMAND ----------
 
@@ -66,9 +82,9 @@ F1_definitivo.write.format("delta").mode("overwrite").saveAsTable("F1")
 
 // COMMAND ----------
 
-// MAGIC %sql
-// MAGIC SELECT * FROM F1
+display(F1_definitivo)
 
 // COMMAND ----------
 
-
+// MAGIC %sql
+// MAGIC SELECT * FROM F1

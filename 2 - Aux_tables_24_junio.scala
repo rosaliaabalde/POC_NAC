@@ -4,6 +4,11 @@
 
 // COMMAND ----------
 
+// MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+
+// COMMAND ----------
+
 import org.apache.spark.sql.types.{StringType, IntegerType, DecimalType, StructField, StructType, DateType}
 
 // COMMAND ----------
@@ -12,9 +17,14 @@ spark.sql("DROP TABLE IF EXISTS TR_RAMO_POL")
 
 // COMMAND ----------
 
+
 val TR_RAMO_POL_raw = spark.read.option("header", "true").option("delimiter", ",").csv("/FileStore/tables/F1/TR_RAMO_POL.csv").select("RAMO_POL", "MODALIDAD_POL","Negocio", "Tipo de Negocio").distinct()
 val TR_RAMO_POL = TR_RAMO_POL_raw.withColumnRenamed("Tipo de negocio", "Tipo_de_negocio").na.fill("")
 TR_RAMO_POL.write.format("delta").saveAsTable("TR_RAMO_POL")
+
+// COMMAND ----------
+
+display(TR_RAMO_POL)
 
 // COMMAND ----------
 
@@ -23,12 +33,14 @@ TR_RAMO_POL.write.format("delta").saveAsTable("TR_RAMO_POL")
 
 // COMMAND ----------
 
+//se borran si existen
 spark.sql("DROP TABLE IF EXISTS maestro_eventos_contables")
 spark.sql("DROP TABLE IF EXISTS maestro_eventos_negocio")
 spark.sql("DROP TABLE IF EXISTS relacion_eventos")
 
 // COMMAND ----------
 
+//se cargan las tablas
 val maestro_eventos_contables = spark.read.option("header", true).option("delimiter", ",").csv("/FileStore/tables/F2_parametricas/maestro_eventos_contables.csv")
 maestro_eventos_contables.write.format("delta").saveAsTable("maestro_eventos_contables")
 
@@ -40,11 +52,24 @@ relacion_eventos.write.format("delta").saveAsTable("relacion_eventos")
 
 // COMMAND ----------
 
+display(maestro_eventos_contables)
+
+// COMMAND ----------
+
+display(maestro_eventos_negocio)
+
+// COMMAND ----------
+
+display(relacion_eventos)
+
+// COMMAND ----------
+
 // MAGIC %md
 // MAGIC ### Tablas Auxiliares ASIENTOS F2_cont
 
 // COMMAND ----------
 
+//se borran si existen las tablas
 spark.sql("DROP TABLE IF EXISTS asientos_cuentas_contables")
 spark.sql("DROP TABLE IF EXISTS asientos_estructura_basica")
 spark.sql("DROP TABLE IF EXISTS asientos_importes")
@@ -52,6 +77,7 @@ spark.sql("DROP TABLE IF EXISTS maestro_cuentas_contables")
 
 // COMMAND ----------
 
+// se crea el esquema de asientos contables
 val schemaAsientosContables = StructType(
   Array(
     StructField("COD_SOCIEDAD", StringType, true),
@@ -65,7 +91,7 @@ val schemaAsientosContables = StructType(
     StructField("COD_CUENTA", DecimalType(10,0), true),
   )
 )
-
+// se crea el esquema de maestro contable
 val schemaMaestroContables = StructType(
   Array(
     StructField("ID_MAE_CUENTA", StringType, true),
@@ -94,3 +120,19 @@ asientos_importes.write.format("delta").saveAsTable("asientos_importes")
 
 val maestro_cuentas_contables = spark.read.option("header", true).option("delimiter", ",").schema(schemaMaestroContables).option("encoding", "ISO-8859-1").csv("/FileStore/tables/F2_parametricas/maestro_cuentas_contables.csv")
 maestro_cuentas_contables.write.format("delta").saveAsTable("maestro_cuentas_contables")
+
+// COMMAND ----------
+
+display(asientos_cuentas_contables)
+
+// COMMAND ----------
+
+display(asientos_estructura_basica)
+
+// COMMAND ----------
+
+display(asientos_importes)
+
+// COMMAND ----------
+
+display(maestro_cuentas_contables)

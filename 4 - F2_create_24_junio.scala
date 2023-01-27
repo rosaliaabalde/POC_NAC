@@ -12,7 +12,12 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
 // COMMAND ----------
 
+// de la tabla maestro_eventos_negocio se quiere solo EVENT_NEG
 val maestro_eventos_negocio = spark.table("maestro_eventos_negocio").select("EVENT_NEG")
+
+// COMMAND ----------
+
+display(maestro_eventos_negocio)
 
 // COMMAND ----------
 
@@ -28,17 +33,30 @@ val dinamicColumnsCuentasContables = asientos_cuentas_contables_df.select("NOM_C
 
 // COMMAND ----------
 
+display(asientos_cuentas_contables_df)
+
+// COMMAND ----------
+
 // MAGIC %md
 // MAGIC ### Tabla maestro cuentas contables
 
 // COMMAND ----------
 
+//se queda con las distintas y en camp_aux y las que no sean null
 val maestro_cuentas_contables_df = spark.table("maestro_cuentas_contables")
 val dinamicMaestroCuentasContables = maestro_cuentas_contables_df
 .select("CAMPO_AUX")
 .filter(col("CAMPO_AUX").isNotNull)
 .distinct().as[String]
 .collect()
+
+// COMMAND ----------
+
+display(maestro_cuentas_contables_df)
+
+// COMMAND ----------
+
+println(dinamicMaestroCuentasContables)
 
 // COMMAND ----------
 
@@ -52,11 +70,16 @@ val relacion_eventos = spark.table("relacion_eventos").select(defaultSelect.map(
 
 // COMMAND ----------
 
+display(relacion_eventos)
+
+// COMMAND ----------
+
 // MAGIC %md
 // MAGIC ### Tablas Asiestos Estructura básica - Importes
 
 // COMMAND ----------
 
+//lists are like arrays
 val defaultSelectAEB = List("COD_SOCIEDAD", "ID_ESTRUCTURA", "COD_ASIENTO", "NOM_IMPORTE", "NATURALEZA")
 val defaultSelectAI = List("COD_SOCIEDAD", "ID_ESTRUCTURA", "COD_ASIENTO", "NOM_IMPORTE", "NOM_CAMPO")
 val asientos_estructura_basica = spark.table("asientos_estructura_basica").select(defaultSelectAEB.map(col):_*)
@@ -65,12 +88,25 @@ val dinamicColumnsAsientosImportes = asientos_importes.select("NOM_CAMPO").disti
 
 // COMMAND ----------
 
+println(dinamicColumnsAsientosImportes)
+
+// COMMAND ----------
+
+//join para asientos_estructura_basica con asientos_importes
 val asientos_estructura_basica_importes = asientos_estructura_basica.join(asientos_importes, Seq("COD_SOCIEDAD","ID_ESTRUCTURA","COD_ASIENTO","NOM_IMPORTE"))
+
+// COMMAND ----------
+
+display(asientos_estructura_basica_importes)
 
 // COMMAND ----------
 
 // MAGIC %md
 // MAGIC ### Prueba pivotado para join con Asientos cuentas contables.
+
+// COMMAND ----------
+
+//asientos_cuentas_contables_df.filter(distinct(col("NOM_CAMPO")).show()
 
 // COMMAND ----------
 
@@ -83,8 +119,16 @@ val dfACCPivot = asientos_cuentas_contables_df
 
 // COMMAND ----------
 
+dfACCPivot.show()
+
+// COMMAND ----------
+
 val cruceContable = dfACCPivot.join(maestro_cuentas_contables_df, dfACCPivot("COD_CUENTA") === maestro_cuentas_contables_df("NUM_CUENTA"))
 .select(dfACCPivot("*"), maestro_cuentas_contables_df("DESC_CUENTA"), maestro_cuentas_contables_df("IND_TIPO"), maestro_cuentas_contables_df("CAMPO_AUX"))
+
+// COMMAND ----------
+
+cruceContable.show()
 
 // COMMAND ----------
 
@@ -127,11 +171,23 @@ val F1_df = spark.table("default.F1").select(selectColumns.map(col):_*)
 
 // COMMAND ----------
 
+display(F1_df)
+
+// COMMAND ----------
+
 val F1_1_df = F1_df.withColumn("EVENT_NEG", concat_ws("_", col("TR_COD_TIP_RECIB"), col("TR_COD_EST_RECIB")))
 
 // COMMAND ----------
 
+display(F1_1_df)
+
+// COMMAND ----------
+
 val F1_2_df = F1_1_df.join(maestro_eventos_negocio, "EVENT_NEG").select(F1_1_df("*"))
+
+// COMMAND ----------
+
+display(F1_2_df)
 
 // COMMAND ----------
 
@@ -140,12 +196,20 @@ val F1_3_df = F1_2_df.join(relacion_eventos, "EVENT_NEG").select(F1_2_df("*"), r
 
 // COMMAND ----------
 
-val F1_3_df_limitado = F1_3_df
+display(F1_3_df)
+
+// COMMAND ----------
+
+//val F1_3_df_limitado = F1_3_df
 //val F1_3_df_limitado = F1_3_df.limit(500)
 
 // COMMAND ----------
 
-val F1_3_df_join_aebi = F1_3_df_limitado.join(asientos_estructura_basica_importes, Seq("COD_ASIENTO", "COD_SOCIEDAD")).cache() //TODO: ¿Se hace por Entidad? ¿A qué campo corresponde con F1?
+val F1_3_df_join_aebi = F1_3_df.join(asientos_estructura_basica_importes, Seq("COD_ASIENTO", "COD_SOCIEDAD")).cache() //TODO: ¿Se hace por Entidad? ¿A qué campo corresponde con F1?
+
+// COMMAND ----------
+
+display(F1_3_df_join_aebi)
 
 // COMMAND ----------
 
@@ -187,6 +251,10 @@ val dfUnido = dfSeparados.reduce(_ union _)
 
 // COMMAND ----------
 
+display(dfUnido)
+
+// COMMAND ----------
+
 // MAGIC %md
 // MAGIC #### Join F1 enriquecido con Maestro cuentas contables
 
@@ -205,6 +273,10 @@ val F1_6_df = dfUnido
     .withColumn("TR_COD_TIP_EVCON", substring(col("COD_ASIENTO"), 0, 2))
     .withColumn("TR_ID_EVCON", col("COD_ASIENTO"))
     .withColumn("TR_NAT_EVCON", col("NATURALEZA"))
+
+// COMMAND ----------
+
+display(F1_6_df)
 
 // COMMAND ----------
 
@@ -297,13 +369,13 @@ spark.sql(s"INSERT OVERWRITE TABLE f2_cont SELECT ${columnsF2_cont.mkString(",")
 
 // COMMAND ----------
 
-//f2_cont_definitivo.count()
+f2_cont_definitivo.count()
 
 // COMMAND ----------
 
-//display(f2_cont_definitivo.where(col("TR_NAT_EVCON") === 1))
+display(f2_cont_definitivo.where(col("TR_NAT_EVCON") === 1))
 
 // COMMAND ----------
 
 // MAGIC %sql
-// MAGIC --select * from f2_cont where TR_ID_EVNEG = 25769804659
+// MAGIC select * from f2_cont where TR_ID_EVNEG = 25769804659

@@ -4,6 +4,11 @@ import org.apache.spark.sql.Row;
 
 // COMMAND ----------
 
+// MAGIC %sql
+// MAGIC set spark.databricks.delta.properties.defaults.enableChangeDataFeed = true;
+
+// COMMAND ----------
+
 // MAGIC %md
 // MAGIC ### Crear estructura de la tabla F0 y guardarla en formato Delta
 
@@ -66,6 +71,7 @@ import org.apache.spark.sql.Row;
 // MAGIC TR_COD_RAMO_CONT STRING,
 // MAGIC TR_COD_MOD_CONT STRING)
 // MAGIC USING DELTA
+// MAGIC TBLPROPERTIES (delta.enableChangeDataFeed = true)
 
 // COMMAND ----------
 
@@ -109,8 +115,8 @@ val f00_schema = StructType(
 // COMMAND ----------
 
 // Cargar la tabla con una muestra con 166 de uno de los archivos input
-//val file_location = "/FileStore/tables/sample.csv"
-val file_location = "/FileStore/tables/F0_input/"
+val file_location = "/FileStore/tables/sample"
+//val file_location = "/FileStore/tables/F0_input/"
 
 val f0_df = sqlContext.read.format("csv")
 .schema(f00_schema)
@@ -118,7 +124,7 @@ val f0_df = sqlContext.read.format("csv")
 .option("delimiter", "|")
 .load(file_location)
 
-// display(f0_df)
+display(f0_df)
 
 // COMMAND ----------
 
@@ -225,7 +231,7 @@ val f0_df3 = f0_df2.withColumn("FEC_LIQ", when(col("COD_EST_REC") === "CB", col(
                                           .otherwise(lit("")))
 .drop("F.LIQ.COB.", "F.LIQ.ANU.", "F.LIQ.CAR.") //DROP AUXILIAR COLUMNS
 
-//display(f0_df3)
+
 
 // COMMAND ----------
 
@@ -272,7 +278,7 @@ val abc = ab.flatMap(x => c.map(y => x :+ y))
 //Filter filtrando por cada casuística compuesta en la lista anterior
 import org.apache.spark.sql.DataFrame
 
-val limite = 5
+//val limite = 5
 val dfCasos: List[DataFrame] = abc.map(cond => {
   dfFilter.filter(cond.reduce(_ and _)).limit(limite)
 })
@@ -308,6 +314,10 @@ println(columns)
 // COMMAND ----------
 
 f0_df3.select(columns.map(col):_*).schema
+
+// COMMAND ----------
+
+display(f0_df3)
 
 // COMMAND ----------
 

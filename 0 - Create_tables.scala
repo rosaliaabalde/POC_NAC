@@ -56,6 +56,7 @@
 // MAGIC TR_COD_RAMO_CONT STRING,
 // MAGIC TR_COD_MOD_CONT STRING)
 // MAGIC USING DELTA
+// MAGIC TBLPROPERTIES (delta.enableChangeDataFeed = true);
 
 // COMMAND ----------
 
@@ -122,6 +123,7 @@
 // MAGIC TR_NEGOCIO STRING,
 // MAGIC TR_COD_TIP_NEGOCIO STRING)
 // MAGIC USING delta
+// MAGIC TBLPROPERTIES (delta.enableChangeDataFeed = true);
 
 // COMMAND ----------
 
@@ -137,6 +139,7 @@
 // MAGIC TR_CC_DES STRING, -- Campo calculado. Utiliza campo DESC_CUENTA de Maestro cuentas junto con campo COD_MEDIADOR de la tabla F1.
 // MAGIC TR_CC_IMP DECIMAL(13,2) -- Campo calculado. Se ha tomado el valor de la columna NOM_IMPORTE de la tabla Asientos - Estructura básica para extraer el importe de la columna correspondiente de F1.
 // MAGIC ) USING delta
+// MAGIC TBLPROPERTIES (delta.enableChangeDataFeed = true);
 
 // COMMAND ----------
 
@@ -165,3 +168,4 @@
 // MAGIC INDICADOR_CME STRING, -- Nuevo (por ahora vacio)
 // MAGIC MODALIDAD_CON STRING -- Proviene de F2_CONT (TR_COD_MOD_CONT)
 // MAGIC ) USING delta
+// MAGIC TBLPROPERTIES (delta.enableChangeDataFeed = true);

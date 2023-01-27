@@ -15,11 +15,11 @@ val f2_cont_df = spark.table("default.f2_cont").select(defaultColumnsF2.map(col)
 val PS_df = f2_cont_df.join(f1_df, "TR_ID_EVNEG")
 //TODO SELECT DE CAMPOS NO COMUNES
 
-//display(PS_df)
+display(PS_df)
 
 // COMMAND ----------
 
-//PS_df.count()
+PS_df.count()
 //PS_df.printSchema
 //display(PS_df)
 
@@ -29,10 +29,11 @@ val groupByColumns = List("COD_SOCIEDAD", "TR_COD_TIP_EVCON", "TR_ID_EVCON", "CO
 val PS_agg = PS_df.groupBy(groupByColumns.map(col):_*)
 .agg(sum("TR_CC_IMP").cast(DecimalType(13,2)).as("TR_CC_IMP"))
 
-//PS_agg.printSchema
+PS_agg.printSchema
 
 // COMMAND ----------
 
+//Esto ya lo hace directamente al crear PS_agg
 //val PS_agg = PS_agg0.withColumn("TR_CC_IMP", col("TR_CC_IMP").cast(DecimalType(13,2)))
 
 // COMMAND ----------
