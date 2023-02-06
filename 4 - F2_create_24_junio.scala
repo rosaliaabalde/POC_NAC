@@ -340,6 +340,10 @@ spark.sql(s"INSERT OVERWRITE TABLE f2_cont SELECT ${columnsF2_cont.mkString(",")
 
 // COMMAND ----------
 
+spark.readStream.format("delta").option("readChangeFeed", "true").table("f2_cont")
+
+// COMMAND ----------
+
 //f2_cont_definitivo.coalesce(1).write.option("header","true").mode("overwrite").csv("/FileStore/tables/f2_cont.csv")
 //spark.table("f2_cont").write.format("csv").mode("overwrite").save("/FileStore/tables/f2_cont.csv")
 

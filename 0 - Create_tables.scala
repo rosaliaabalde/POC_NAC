@@ -65,6 +65,10 @@
 
 // COMMAND ----------
 
+//spark.readStream.format("delta").option("readChangeFeed", "true").table("F0")
+
+// COMMAND ----------
+
 // MAGIC %sql
 // MAGIC DROP TABLE IF EXISTS f1;
 // MAGIC CREATE TABLE IF NOT EXISTS f1 (
@@ -132,6 +136,10 @@
 
 // COMMAND ----------
 
+//spark.readStream.format("delta").option("readChangeFeed", "true").table("f1")
+
+// COMMAND ----------
+
 // MAGIC %sql
 // MAGIC CREATE TABLE IF NOT EXISTS f2_cont (
 // MAGIC TR_ID_EVNEG STRING, -- Campo calculado. Identificador de evento de negocio único.
@@ -145,6 +153,10 @@
 // MAGIC TR_CC_IMP DECIMAL(13,2) -- Campo calculado. Se ha tomado el valor de la columna NOM_IMPORTE de la tabla Asientos - Estructura básica para extraer el importe de la columna correspondiente de F1.
 // MAGIC ) USING delta
 // MAGIC TBLPROPERTIES (delta.enableChangeDataFeed = true);
+
+// COMMAND ----------
+
+//spark.readStream.format("delta").option("readChangeFeed", "true").table("f2_cont")
 
 // COMMAND ----------
 
@@ -174,3 +186,7 @@
 // MAGIC MODALIDAD_CON STRING -- Proviene de F2_CONT (TR_COD_MOD_CONT)
 // MAGIC ) USING delta
 // MAGIC TBLPROPERTIES (delta.enableChangeDataFeed = true);
+
+// COMMAND ----------
+
+//spark.readStream.format("delta").option("readChangeFeed", "true").table("ps")

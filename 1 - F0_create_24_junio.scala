@@ -59,7 +59,7 @@ val f00_schema = StructType(
 
 //READING CHANGES IN STREAMING QUERIES
 // Cargar la tabla con una muestra con 166 de uno de los archivos input
-val file_location = "/FileStore/tables/sample"
+val file_location = "/FileStore/tables/xaa"
 //val file_location = "/FileStore/tables/F0_input/"
 // not providing a starting version/timestamp will result in the latest snapshot being fetched first
 val f0_df = spark.read.option("header", "true").options(Map("delimiter"->"|")).schema(f00_schema).csv(file_location)
@@ -188,8 +188,16 @@ val columns = spark.catalog.listColumns("default", "F0").select("name").as[Strin
 
 // COMMAND ----------
 
+spark.readStream.format("delta").option("readChangeFeed", "true").table("F0")
 
-spark.sql(s"INSERT OVERWRITE TABLE F0 SELECT ${columns.mkString(",")} FROM f0Temp");
+// COMMAND ----------
+
+// MAGIC %sql
+// MAGIC SELECT count(*) FROM F0
+
+// COMMAND ----------
+
+//spark.sql(s"INSERT OVERWRITE TABLE F0 SELECT ${columns.mkString(",")} FROM f0Temp");
 
 // COMMAND ----------
 
