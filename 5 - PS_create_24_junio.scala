@@ -13,7 +13,7 @@ import org.apache.spark.sql.types.DecimalType
 // COMMAND ----------
 
 // MAGIC %python
-// MAGIC def upsertToDelta(microBatchOutputDF, batchId):
+// MAGIC """*def upsertToDelta(microBatchOutputDF, batchId):
 // MAGIC     (ps.alias("t").merge(
 // MAGIC         microBatchOutputDF.alias("s"),
 // MAGIC         "s.TR_ID_EVNEG = t.TR_ID_EVNEG")
@@ -31,7 +31,7 @@ import org.apache.spark.sql.types.DecimalType
 // MAGIC                             s.COD_MEDIADOR <> t.COD_MEDIADOR OR
 // MAGIC                             s.TR_COD_AGENCIA <> t.TR_COD_AGENCIA""")
 // MAGIC         .whenNotMatchedInsertAll()
-// MAGIC         .execute())
+// MAGIC         .execute())"""
 
 // COMMAND ----------
 
