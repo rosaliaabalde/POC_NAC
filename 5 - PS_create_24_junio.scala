@@ -12,6 +12,29 @@ import org.apache.spark.sql.types.DecimalType
 
 // COMMAND ----------
 
+// MAGIC %python
+// MAGIC def upsertToDelta(microBatchOutputDF, batchId):
+// MAGIC     (ps.alias("t").merge(
+// MAGIC         microBatchOutputDF.alias("s"),
+// MAGIC         "s.TR_ID_EVNEG = t.TR_ID_EVNEG")
+// MAGIC         .whenMatchedUpdateAll(
+// MAGIC             condition = """s.TR_COD_TIP_EVCON <> t.TR_COD_TIP_EVCON OR
+// MAGIC                             s.TR_ID_EVCON <> t.TR_ID_EVCON OR
+// MAGIC                             s.TR_NAT_EVCON <> t.TR_NAT_EVCON OR
+// MAGIC                             s.TR_CUENTA_CONT <> t.TR_CUENTA_CONT OR
+// MAGIC                             s.TR_CC_IMP <> t.TR_CC_IMP OR
+// MAGIC                             s.TR_COD_RAMO_CONT <> t.TR_COD_RAMO_CONT OR
+// MAGIC                             s.TR_COD_MOD_CONT <> t.TR_COD_MOD_CONT OR
+// MAGIC                             s.COD_SOCIEDAD <> t.COD_SOCIEDAD OR
+// MAGIC                             s.COD_DIVISA <> t.COD_DIVISA OR
+// MAGIC                             s.CON_LIQUIDACION <> t.CON_LIQUIDACION OR
+// MAGIC                             s.COD_MEDIADOR <> t.COD_MEDIADOR OR
+// MAGIC                             s.TR_COD_AGENCIA <> t.TR_COD_AGENCIA""")
+// MAGIC         .whenNotMatchedInsertAll()
+// MAGIC         .execute())
+
+// COMMAND ----------
+
 val defaultColumnsF1 = List("TR_ID_EVNEG", "COD_SOCIEDAD", "COD_DIVISA", "CON_LIQUIDACION", "COD_MEDIADOR", "TR_COD_AGENCIA")
 val defaultColumnsF2 = List("TR_ID_EVNEG", "TR_COD_TIP_EVCON", "TR_ID_EVCON", "TR_NAT_EVCON", "TR_CUENTA_CONT", "TR_CC_IMP", "TR_COD_RAMO_CONT", "TR_COD_MOD_CONT")
 val f1_df = spark.table("default.f1").select(defaultColumnsF1.map(col):_*)
