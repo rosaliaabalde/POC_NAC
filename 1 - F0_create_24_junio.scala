@@ -63,7 +63,7 @@
 
 // COMMAND ----------
 
-val f0path = "/FileStore/tables/samples"
+val f0path = "/FileStore/tables/samples/"
 //val username = spark.sql("SELECT regexp_replace(current_user(), '[^a-zA-Z0-9]', '_')").first.get(0)
 val checkpoint_path = "/tmp/_checkpoint"
 val table_name = "F0"
@@ -104,6 +104,10 @@ spark.sql(s"DROP TABLE IF EXISTS F0")
 
 // MAGIC %scala
 // MAGIC val f0_df = spark.read.table(table_name)
+
+// COMMAND ----------
+
+display(f0_df)
 
 // COMMAND ----------
 
@@ -217,18 +221,62 @@ spark.sql(s"DROP TABLE IF EXISTS F0")
 // COMMAND ----------
 
 // MAGIC %scala
-// MAGIC //CREATE TEMP VIEW
-// MAGIC f0_df3.createOrReplaceTempView("f0Temp")
-
-// COMMAND ----------
-
-// MAGIC %scala
-// MAGIC import spark.implicits._
-
-// COMMAND ----------
-
-// MAGIC %scala
 // MAGIC val columns = spark.catalog.listColumns("default", "F0").select("name").as[String].collect()
+
+// COMMAND ----------
+
+import spark.implicits._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.streaming.{OutputMode, Trigger}
+import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
+import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
+
+// Define your change data feed query as a DataFrame
+val changeDataFeed = spark.readStream.format("csv").schema(f00_schema).load("/FileStore/tables/xac-1")
+
+
+
+// COMMAND ----------
+
+
+//CREATE TEMP VIEW
+f0_df3.createOrReplaceTempView("f0Temp")
+
+// COMMAND ----------
+
+
+
+// Write the change data feed to the temporary table
+changeDataFeed
+  .writeStream
+  .foreachBatch { (df: Dataset[Row], batchId: Long) =>
+    // Write the batch DataFrame to the temporary table
+    df.write
+      .format("csv")
+      .option("path", "/FileStore/tables/")
+      .mode("append")
+      .save()
+  }
+  .outputMode("append")
+  .trigger(Trigger.ProcessingTime("10 seconds"))
+  .start()
+  .awaitTermination()
+
+// COMMAND ----------
+
+display(f0Temp)
+
+// COMMAND ----------
+
+val mergeStatement = s"""
+  UPDATE F0
+  SET columns = t.columns
+  FROM f0Temp t
+  WHERE F0.POLIZA = t.POLIZA
+"""
+
+spark.sql(mergeStatement)
+
 
 // COMMAND ----------
 
@@ -247,14 +295,14 @@ spark.sql(s"DROP TABLE IF EXISTS F0")
 
 // COMMAND ----------
 
-val file_location = "/FileStore/tables/xac"
-//val file_location = "/FileStore/tables/F0_input/"
+//val file_location = "/FileStore/tables/xac"
+//val file_location_nuevo = "/FileStore/tables/xac-1"
 // not providing a starting version/timestamp will result in the latest snapshot being fetched first
-val df_nuevo = spark.read.option("header", "true").options(Map("delimiter"->"|")).schema(f00_schema).csv(file_location)
+//val df_nuevo = spark.read.option("header", "true").options(Map("delimiter"->"|")).schema(f00_schema).csv(file_location_nuevo)
 
 // COMMAND ----------
 
-spark.createDataFrame(df_nuevo, columns).write.format("delta").mode("append").saveAsTable("F0")
+//spark.createDataFrame(df_nuevo, columns).write.format("delta").mode("append").saveAsTable("F0")
 
 
 // COMMAND ----------
