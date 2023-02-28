@@ -336,11 +336,34 @@ val f2_cont_definitivo = F1_6_df_map.select(columnsF2_cont.map(col):_*)
 // COMMAND ----------
 
 f2_cont_definitivo.createOrReplaceTempView("f2Temp")
-spark.sql(s"INSERT OVERWRITE TABLE f2_cont SELECT ${columnsF2_cont.mkString(",")} FROM f2Temp")
+//spark.sql(s"INSERT OVERWRITE TABLE f2_cont SELECT ${columnsF2_cont.mkString(",")} FROM f2Temp")
 
 // COMMAND ----------
 
 spark.readStream.format("delta").option("readChangeFeed", "true").table("f2_cont")
+
+// COMMAND ----------
+
+// Write the change data feed to the temporary table
+changeDataFeed
+  .writeStream
+  .foreachBatch { (df: Dataset[Row], batchId: Long) =>
+    // Write the batch DataFrame to the temporary table
+    df.write
+      .format("csv")
+      .option("path", "/FileStore/tables/")
+      .mode("append")
+      .save()
+  }
+  .outputMode("append")
+  .option("checkpointLocation", checkPointDir)
+  .trigger(Trigger.ProcessingTime("10 seconds"))
+  .start()
+  .awaitTermination()
+
+// COMMAND ----------
+
+columnsF2_cont
 
 // COMMAND ----------
 

@@ -5,6 +5,19 @@
 // MAGIC import org.apache.spark.sql.functions.{input_file_name, current_timestamp}
 // MAGIC import org.apache.spark.sql.streaming.Trigger
 // MAGIC import spark.implicits._
+// MAGIC import org.apache.spark.sql.SparkSession
+// MAGIC import org.apache.spark.sql.Column
+// MAGIC import org.apache.spark.sql.streaming.Trigger
+// MAGIC import org.apache.spark.sql.functions.{when, _}
+// MAGIC import scala.math.Ordering.Implicits._
+// MAGIC import org.apache.spark.sql.types.Decimal
+// MAGIC import org.apache.spark.sql.functions.{lit, udf, trim, regexp_replace}
+// MAGIC import org.apache.spark.sql.functions.column
+// MAGIC import org.apache.spark.sql.functions.{col, desc}
+// MAGIC import org.apache.spark.sql.functions._
+// MAGIC import org.apache.spark.sql.streaming.{OutputMode, Trigger}
+// MAGIC import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
+// MAGIC import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 // COMMAND ----------
 
@@ -54,16 +67,30 @@
 
 // COMMAND ----------
 
-
 //READING CHANGES IN BATCH QUERIES
 // Cargar la tabla con una muestra con 166 de uno de los archivos input
 //val file_location = "/FileStore/tables/2021_04_recibos_sg"
-//val file_location = "/FileStore/tables/F0_input/"
+//val file_location = "/FileStore/tables/xaa"
 //val f0_df = spark.read.option("header", "true").options(Map("delimiter"->"|")).option("startingVersion", 0).option("endingVersion", 10).schema(f00_schema).csv(file_location)
 
 // COMMAND ----------
 
-val f0path = "/FileStore/tables/samples/"
+//READING CHANGES IN STREAMING QUERIES
+// Cargar la tabla con una muestra con 166 de uno de los archivos input
+//val file_location = "/FileStore/tables/F0_input/"
+// not providing a starting version/timestamp will result in the latest snapshot being fetched first
+
+
+// COMMAND ----------
+
+//Cargar archivos de manera normal
+/*val file_location = "/FileStore/tables/xab"
+val f0_df = spark.read.option("header", "true").options(Map("delimiter"->"|")).schema(f00_schema).csv(file_location)*/
+
+// COMMAND ----------
+
+//AUTOLOADER
+/*val f0path = "/FileStore/tables/samples/"
 //val username = spark.sql("SELECT regexp_replace(current_user(), '[^a-zA-Z0-9]', '_')").first.get(0)
 val checkpoint_path = "/tmp/_checkpoint"
 val table_name = "F0"
@@ -87,23 +114,42 @@ spark.sql(s"DROP TABLE IF EXISTS F0")
  .trigger(Trigger.AvailableNow)
  .toTable(table_name)
 )
-
+*/
 
 
 // COMMAND ----------
 
-// MAGIC %scala
-// MAGIC //READING CHANGES IN STREAMING QUERIES
-// MAGIC // Cargar la tabla con una muestra con 166 de uno de los archivos input
-// MAGIC //val file_location = "/FileStore/tables/xab"
-// MAGIC //val file_location = "/FileStore/tables/F0_input/"
-// MAGIC // not providing a starting version/timestamp will result in the latest snapshot being fetched first
-// MAGIC //val f0_df = spark.read.option("header", "true").options(Map("delimiter"->"|")).schema(f00_schema).csv(file_location)
+def getFileName : Column = {
+      val file_name = reverse(split(input_file_name(), "/")).getItem(0)
+      split(file_name, "_").getItem(0)
+    }
 
 // COMMAND ----------
 
-// MAGIC %scala
-// MAGIC val f0_df = spark.read.table(table_name)
+val src_df = spark
+      .readStream
+      .option("maxFilesPerTrigger", 1) // This will read maximum of 1 files per mini batch. However, it can read less than 2 files.
+      .option("header", true)
+      .options(Map("delimiter"->"|"))
+      .schema(f00_schema)
+      .csv("/FileStore/tables/sourcetables")
+      .withColumn("Name", getFileName)
+src_df.printSchema()
+println("Streaming DataFrame : " + src_df.isStreaming)
+
+// COMMAND ----------
+
+val f0_df = src_df.select("*").withColumn("timestamp", current_timestamp())
+
+// COMMAND ----------
+
+f0_df
+      .writeStream
+      .outputMode("update") 
+      .option("checkpointLocation", "/FileStore/tables/checkpoint")
+      .format("console")
+    //  .option("path","/FileStore/tables/finaltables")
+      .start()
 
 // COMMAND ----------
 
@@ -113,21 +159,6 @@ display(f0_df)
 
 // MAGIC %md
 // MAGIC ### Crear una copia del dataframe para agregar y editar 
-
-// COMMAND ----------
-
-// MAGIC %scala
-// MAGIC import org.apache.spark.sql.functions.{lit, udf, trim, regexp_replace}
-// MAGIC import org.apache.spark.sql.functions.column
-// MAGIC import org.apache.spark.sql.functions.{col, desc}
-
-// COMMAND ----------
-
-// MAGIC %scala
-// MAGIC import org.apache.spark.sql.functions.{when, _}
-// MAGIC import spark.implicits._
-// MAGIC import scala.math.Ordering.Implicits._
-// MAGIC import org.apache.spark.sql.types.Decimal
 
 // COMMAND ----------
 
@@ -200,18 +231,16 @@ display(f0_df)
 
 // COMMAND ----------
 
-// MAGIC %scala
-// MAGIC //display(f0_df2)
+display(f0_df2)
 
 // COMMAND ----------
 
-// MAGIC %scala
-// MAGIC //más cambio de nombres
-// MAGIC val f0_df3 = f0_df2.withColumn("FEC_LIQ", when(col("COD_EST_REC") === "CB", col("`F.LIQ.COB.`"))
-// MAGIC                                           .when(col("COD_EST_REC") === "DV", col("`F.LIQ.ANU.`"))
-// MAGIC                                           .when(col("COD_EST_REC") === "PT", col("`F.LIQ.CAR.`"))
-// MAGIC                                           .otherwise(lit("")))
-// MAGIC .drop("F.LIQ.COB.", "F.LIQ.ANU.", "F.LIQ.CAR.") //DROP AUXILIAR COLUMNS
+//más cambio de nombres
+val f0_df3 = f0_df2.withColumn("FEC_LIQ", when(col("COD_EST_REC") === "CB", col("`F.LIQ.COB.`"))
+                                          .when(col("COD_EST_REC") === "DV", col("`F.LIQ.ANU.`"))
+                                          .when(col("COD_EST_REC") === "PT", col("`F.LIQ.CAR.`"))
+                                          .otherwise(lit("")))
+.drop("F.LIQ.COB.", "F.LIQ.ANU.", "F.LIQ.CAR.") //DROP AUXILIAR COLUMNS
 
 // COMMAND ----------
 
@@ -220,62 +249,44 @@ display(f0_df)
 
 // COMMAND ----------
 
-// MAGIC %scala
-// MAGIC val columns = spark.catalog.listColumns("default", "F0").select("name").as[String].collect()
-
-// COMMAND ----------
-
-import spark.implicits._
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.streaming.{OutputMode, Trigger}
-import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
-import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
-
 // Define your change data feed query as a DataFrame
-val changeDataFeed = spark.readStream.format("csv").schema(f00_schema).load("/FileStore/tables/xac-1")
-
-
+//val changeDataFeed = spark.readStream.format("csv").schema(f00_schema).load("/FileStore/tables/xac-1")
 
 // COMMAND ----------
-
-
-//CREATE TEMP VIEW
-f0_df3.createOrReplaceTempView("f0Temp")
-
-// COMMAND ----------
-
-
 
 // Write the change data feed to the temporary table
+/*sc.setCheckpointDir("/FileStore/tables/checkpoint")
+
 changeDataFeed
   .writeStream
   .foreachBatch { (df: Dataset[Row], batchId: Long) =>
     // Write the batch DataFrame to the temporary table
     df.write
       .format("csv")
-      .option("path", "/FileStore/tables/")
+      .option("path", "/FileStore/tables/checkpoint")
       .mode("append")
       .save()
   }
   .outputMode("append")
+  .option("checkpointLocation", checkPointDir)
   .trigger(Trigger.ProcessingTime("10 seconds"))
   .start()
-  .awaitTermination()
+  .awaitTermination()*/
 
 // COMMAND ----------
 
-display(f0Temp)
+val columns = spark.catalog.listColumns("default", "F0").select("name").as[String].collect()
 
 // COMMAND ----------
 
-val mergeStatement = s"""
+/*val mergeStatement = s"""
   UPDATE F0
-  SET columns = t.columns
-  FROM f0Temp t
-  WHERE F0.POLIZA = t.POLIZA
+  SET COD_SOCIEDAD=t.COD_SOCIEDAD, COD_POLIZA=t.COD_POLIZA, COD_RAMO=t.COD_RAMO, COD_MODALIDAD=t.COD_MODALIDAD, COD_GARANTIA=t.COD_GARANTIA, COD_CERTIFICADO=t.COD_CERTIFICADO, COD_RECIBO=t.COD_RECIBO, MAR_NUEV_RECIBO=t.MAR_NUEV_RECIBO, COD_DIVISA=t.COD_DIVISA, IMP_PRIM_TARIFA=t.IMP_PRIM_TARIFA, IMP_PRIM_UNIC=t.IMP_PRIM_UNIC, IMP_PRIM_PERIOD=t.IMP_PRIM_PERIOD, IMP_PRIM_EXTOR_EJER=t.IMP_PRIM_EXTOR_EJER, IMP_PRIM_EXTOR_EJER_ANT=t.IMP_PRIM_EXTOR_EJER_ANT, IMP_PRIM_ANUL_EJER_ANT=t.IMP_PRIM_ANUL_EJER_ANT, BON_N_SINIESTRALIDAD=t.BON_N_SINIESTRALIDAD, IPS=t.IPS, TAS_CSS_REC_RIES_EXTR=t.TAS_CSS_REC_RIES_EXTR, TAS_CSS_REC_FUN_LIQ=t.TAS_CSS_REC_FUN_LIQ, TAS_CSS_PRIM_PEND_COBR=t.TAS_CSS_PRIM_PEND_COBR, ARB_BOMBEROS=t.ARB_BOMBEROS, IMP_COMISIONES=t.IMP_COMISIONES, IMP_RETEN_FISC=t.IMP_RETEN_FISC, IMP_TOT_RECIB=t.IMP_TOT_RECIB, CAR_RECIB=t.CAR_RECIB, ID_MOV_ECON=t.ID_MOV_ECON, FEC_MOV_ECON=t.FEC_MOV_ECON, FEC_EMI=t.FEC_EMI, FEC_LIQT=t.FEC_LIQ, COD_TIP_RECIB=t.COD_TIP_RECIB, COD_EST_REC_ANT=t.COD_EST_REC_ANT, COD_EST_REC=t.COD_EST_REC, REC_FRACCIONADO=t.REC_FRACCIONADO, MAR_RECIB_SIMUL=t.MAR_RECIB_SIMUL, COMP=t.COMP, MAR_REINV=t.MAR_REINV, ENT_COLABORADORA=t.ENT_COLABORADORA, COD_TIP_SIN=t.COD_TIP_SIN, COD_AGENCIA=t.COD_AGENCIA, COD_MEDIADOR=t.COD_MEDIADOR, COD_TIP_GESTION=t.COD_TIP_GESTION, CON_LIQUIDACION=t.CON_LIQUIDACION, IMP_DESCUENTO=t.IMP_DESCUENTO, IMP_PRIM_REAL=t.IMP_PRIM_REAL, IMP_COA=t.IMP_COA, PRE_RECOBRADAS=t.PRE_RECOBRADAS, NOM_DESTINATARIO=t.NOM_DESTINATARIO, NOM_POBL=t.NOM_POBL, NIF=t.NIF, CTA_BANC=t.CTA_BANC, ENT_BANCARIA=t.ENT_BANCARIA, TR_COD_RAMO_CONT=t.TR_COD_RAMO_CONT, TR_COD_MOD_CONT=t.TR_COD_MOD_CONT
+  FROM F0 a, f0Temp t
+  WHERE F0.COD_SOCIEDAD = t.COD_SOCIEDAD
 """
 
-spark.sql(mergeStatement)
+spark.sql(mergeStatement)*/
 
 
 // COMMAND ----------
@@ -307,7 +318,10 @@ spark.sql(mergeStatement)
 
 // COMMAND ----------
 
-//spark.sql(s"INSERT OVERWRITE TABLE F0 SELECT ${columns.mkString(",")} FROM f0Temp");
+//CREATE TEMP VIEW
+//paso a f1 normal 
+f0_df3.createOrReplaceTempView("f0Temp")
+spark.sql(s"INSERT OVERWRITE TABLE F0 SELECT ${columns.mkString(",")} FROM f0Temp");
 
 // COMMAND ----------
 
