@@ -245,7 +245,7 @@ val f0_df3 = f0_df2.withColumn("FEC_LIQ", when(col("COD_EST_REC") === "CB", col(
 // COMMAND ----------
 
 // MAGIC %scala
-// MAGIC //display(f0_df3)
+// MAGIC display(f0_df3)
 
 // COMMAND ----------
 
